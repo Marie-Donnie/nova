@@ -106,21 +106,19 @@ def _create_aggregate_with_hosts(context=context.get_admin_context(),
         db.aggregate_host_add(context, result['id'], host)
     return result
 
-class AggregateDBApiTestCase(test.TestCase):
+import redis
+r =redis.StrictRedis()
+class DiscoveryTestCase(test.TestCase):
+    def tearDown(self):
+        super(DiscoveryTestCase, self).tearDown()
+        r.flushall()
+
+class AggregateDBApiTestCase(DiscoveryTestCase):
     def setUp(self):
         super(AggregateDBApiTestCase, self).setUp()
         self.user_id = 'fake'
         self.project_id = 'fake'
         self.context = context.RomeRequestContext(self.user_id, self.project_id)
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(AggregateDBApiTestCase, self).tearDown()
-        classes = [models.AggregateMetadata, models.Aggregate, models.AggregateHost]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def test_aggregate_create_no_metadata(self):
         result = _create_aggregate(metadata=None)
@@ -569,7 +567,7 @@ class ModelsObjectComparatorMixin(object):
             self.assertIn(primitive, primitives1)
 
 
-class InstanceTestCase(unittest.TestCase, ModelsObjectComparatorMixin):
+class InstanceTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
 
     """Tests for db.api.instance_* methods."""
 
@@ -586,15 +584,6 @@ class InstanceTestCase(unittest.TestCase, ModelsObjectComparatorMixin):
     def setUp(self):
         super(InstanceTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(InstanceTestCase, self).tearDown()
-        classes = [models.InstanceGroupMember, models.FloatingIp, models.FixedIp, models.Instance, models.InstanceSystemMetadata, models.InstanceMetadata, models.InstanceFault]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def _assertEqualInstances(self, instance1, instance2):
         self._assertEqualObjects(instance1, instance2,
@@ -1738,22 +1727,13 @@ class InstanceTestCase(unittest.TestCase, ModelsObjectComparatorMixin):
             self.ctxt, instance['uuid']))
 
 
-class InstanceMetadataTestCase(unittest.TestCase):
+class InstanceMetadataTestCase(DiscoveryTestCase):
 
     """Tests for db.api.instance_metadata_* methods."""
 
     def setUp(self):
         super(InstanceMetadataTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(InstanceMetadataTestCase, self).tearDown()
-        classes = [models.InstanceMetadata]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def test_instance_metadata_get(self):
         instance = db.instance_create(self.ctxt, {'metadata':
@@ -1785,20 +1765,10 @@ class InstanceMetadataTestCase(unittest.TestCase):
         metadata = db.instance_metadata_get(self.ctxt, instance['uuid'])
         self.assertEqual(metadata, {'new_key': 'new_value'})
 
-class ServiceTestCase(unittest.TestCase, ModelsObjectComparatorMixin):
+class ServiceTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
     def setUp(self):
         super(ServiceTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
-
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(ServiceTestCase, self).tearDown()
-        classes = [models.Service]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def _get_base_values(self):
         return {
@@ -2018,26 +1988,12 @@ class ServiceTestCase(unittest.TestCase, ModelsObjectComparatorMixin):
                           self.ctxt, values)
 
 
-class BaseInstanceTypeTestCase(test.TestCase, ModelsObjectComparatorMixin):
+class BaseInstanceTypeTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
     def setUp(self):
         super(BaseInstanceTypeTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
         self.user_ctxt = context.RomeRequestContext('user', 'user')
 
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(BaseInstanceTypeTestCase, self).tearDown()
-        classes = [models.InstanceTypeExtraSpecs, models.Instance, models.InstanceTypeProjects,
-                   models.InstanceTypes, models.InstanceMetadata, models.InstanceAction,
-                   models.InstanceActionEvent, models.InstanceExtra, models.InstanceFault,
-                   models.InstanceGroup, models.InstanceGroupMember, models.InstanceGroupPolicy,
-                   models.InstanceIdMapping, models.InstanceInfoCache, models.InstanceSystemMetadata,
-                   models.FixedIp, models.Network
-        ]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def _get_base_values(self):
         return {
@@ -2059,23 +2015,10 @@ class BaseInstanceTypeTestCase(test.TestCase, ModelsObjectComparatorMixin):
         v.update(values)
         return db.flavor_create(self.ctxt, v, projects)
 
-class SecurityGroupRuleTestCase(test.TestCase, ModelsObjectComparatorMixin):
+class SecurityGroupRuleTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
     def setUp(self):
         super(SecurityGroupRuleTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
-
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(SecurityGroupRuleTestCase, self).tearDown()
-        classes = [models.SecurityGroup, models.SecurityGroupIngressDefaultRule, models.SecurityGroupIngressRule,
-                   models.SecurityGroupInstanceAssociation, models.Instance, models.InstanceGroupMember,
-                   models.InstanceIdMapping, models.InstanceInfoCache, models.InstanceExtra,
-                   models.InstanceSystemMetadata, models.InstanceMetadata,models.QuotaUsage]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def _get_base_values(self):
         return {
@@ -2212,7 +2155,7 @@ class SecurityGroupRuleTestCase(test.TestCase, ModelsObjectComparatorMixin):
         expected = [9, 10]
         self.assertEqual(counted_groups, expected)
 
-class SecurityGroupTestCase(test.TestCase, ModelsObjectComparatorMixin):
+class SecurityGroupTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
     def setUp(self):
         super(SecurityGroupTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
@@ -2225,16 +2168,6 @@ class SecurityGroupTestCase(test.TestCase, ModelsObjectComparatorMixin):
             'project_id': 'fake',
             'instances': []
             }
-
-    # def tearDown(self):
-    #     "Hook method for deconstructing the test fixture after testing it."
-    #     super(SecurityGroupRuleTestCase, self).tearDown()
-    #     classes = [models.SecurityGroup]
-    #     for c in classes:
-    #         for o in Query(c).all():
-    #             o.delete()
-    #     pass
-
 
     def _create_security_group(self, values):
         v = self._get_base_values()
@@ -2761,22 +2694,13 @@ class InstanceTypeTestCase(BaseInstanceTypeTestCase):
                 flavor['flavorid'], read_deleted='yes')
         self.assertEqual(flavor['id'], flavor_by_fid['id'])
 
-class NetworkTestCase(test.TestCase, ModelsObjectComparatorMixin):
+class NetworkTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
 
     """Tests for db.api.network_* methods."""
 
     def setUp(self):
         super(NetworkTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(NetworkTestCase, self).tearDown()
-        classes = [models.Network, models.Instance, models.FixedIp, models.VirtualInterface]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def _get_associated_fixed_ip(self, host, cidr, ip):
         network = db.network_create_safe(self.ctxt,
@@ -3082,7 +3006,7 @@ class NetworkTestCase(test.TestCase, ModelsObjectComparatorMixin):
             'reserved': True})
         self.assertEqual(1, db.network_count_reserved_ips(self.ctxt, net.id))
 
-class ComputeNodeTestCase(test.TestCase, ModelsObjectComparatorMixin):
+class ComputeNodeTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
 
     _ignored_keys = ['id', 'deleted', 'deleted_at', 'created_at', 'updated_at']
     # TODO(jaypipes): Remove once the compute node inventory migration has
@@ -3136,15 +3060,6 @@ class ComputeNodeTestCase(test.TestCase, ModelsObjectComparatorMixin):
 #        self.flags(reserved_host_memory_mb=0)
 #        self.flags(reserved_host_disk_mb=0)
         self.item = db.compute_node_create(self.ctxt, self.compute_node_dict)
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(ComputeNodeTestCase, self).tearDown()
-        classes = [models.ComputeNode]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def test_compute_node_create(self):
         self._assertEqualObjects(self.compute_node_dict, self.item,
@@ -4258,21 +4173,11 @@ class FixedIPTestCase(BaseInstanceTypeTestCase):
                                                            param_2['address'])
         self._assertEqualObjects(param_2, fixed_ip_after_update, ignored_keys)
 
-class FloatingIpTestCase(test.TestCase, ModelsObjectComparatorMixin):
+class FloatingIpTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
 
     def setUp(self):
         super(FloatingIpTestCase, self).setUp()
         self.ctxt = context.get_admin_context()
-
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(FloatingIpTestCase, self).tearDown()
-        classes = [models.FloatingIp, models.Instance, models.InstanceExtra, models.InstanceIdMapping,
-                   models.InstanceInfoCache]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def _get_base_values(self):
         return {
@@ -4811,21 +4716,13 @@ class FloatingIpTestCase(test.TestCase, ModelsObjectComparatorMixin):
                           {'address': float_ip1['address']})
 
 
-class TestInstanceInfoCache(test.TestCase):
+class TestInstanceInfoCache(DiscoveryTestCase):
     def setUp(self):
         super(TestInstanceInfoCache, self).setUp()
         user_id = 'fake'
         project_id = 'fake'
         self.context = context.get_admin_context()
 
-    def tearDown(self):
-        "Hook method for deconstructing the test fixture after testing it."
-        super(TestInstanceInfoCache, self).tearDown()
-        classes = [models.Instance, models.InstanceInfoCache]
-        for c in classes:
-            for o in Query(c).all():
-                o.delete()
-        pass
 
     def test_instance_info_cache_get(self):
         instance = db.instance_create(self.context, {})
