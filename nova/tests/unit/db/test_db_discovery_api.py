@@ -3942,7 +3942,7 @@ class FixedIPTestCase(BaseInstanceTypeTestCase):
                         'instance_uuid': None, 'host': None, 'id': 1}
             else:
                 return {'network_id': network['id'], 'address': address,
-                        'instance_uuid': None, 'host': None, 'id': 2}
+                        'instance_uuid': None, 'host': None, 'id': 1}
 
         with mock.patch('lib.rome.core.orm.query.Query.first',
                         side_effect=fake_first) as mock_first:
