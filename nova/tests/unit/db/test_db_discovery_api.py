@@ -1158,8 +1158,8 @@ class InstanceTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
         self.assertEqual('bar', result[0]['system_metadata'][0]['value'])
         self.assertEqual(instance['uuid'], result[0]['extra']['instance_uuid'])
 
-    @mock.patch('nova.db.sqlalchemy.api._instances_fill_metadata')
-    @mock.patch('nova.db.sqlalchemy.api._instance_get_all_query')
+    @mock.patch('nova.db.discovery.api._instances_fill_metadata')
+    @mock.patch('nova.db.discovery.api._instance_get_all_query')
     def test_instance_get_all_by_host_and_node_fills_manually(self,
                                                               mock_getall,
                                                               mock_fill):
