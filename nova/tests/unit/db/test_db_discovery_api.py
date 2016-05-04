@@ -3493,7 +3493,7 @@ class ComputeNodeTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
         db.api.compute_node_get_model(self.ctxt, cid)
         mock_get_model.assert_called_once_with(self.ctxt, cid)
 
-    @mock.patch("nova.db.discovery.api.model_query")
+    @mock.patch("nova.db.sqlalchemy.api.model_query")
     def test_compute_node_get_model(self, mock_model_query):
 
         class FakeFiltered(object):
