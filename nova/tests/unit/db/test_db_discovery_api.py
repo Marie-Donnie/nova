@@ -3507,7 +3507,7 @@ class ComputeNodeTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
                 return fake_filtered_cn
 
         mock_model_query.return_value = FakeModelQuery()
-        result = discovery_api.compute_node_get_model(self.ctxt,
+        result = sqlalchemy_api.compute_node_get_model(self.ctxt,
                                                        self.item["id"])
         self.assertEqual(result, mock.sentinel.first)
         mock_model_query.assert_called_once_with(self.ctxt, models.ComputeNode)
