@@ -5914,7 +5914,6 @@ def aggregate_create(context, values, metadata=None):
         aggregate._metadata
 
 
-
     return aggregate
 
 
