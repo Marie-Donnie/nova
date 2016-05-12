@@ -2345,7 +2345,7 @@ class SecurityGroupTestCase(DiscoveryTestCase, ModelsObjectComparatorMixin):
                                    self.ctxt.user_id)
         self.assertEqual(2, usage.until_refresh)
 
-    @mock.patch.object(db.discovery.api, '_security_group_get_by_names')
+    @mock.patch.object(discovery_api, '_security_group_get_by_names')
     def test_security_group_ensure_default_called_concurrently(self, sg_mock):
         # make sure NotFound is always raised here to trick Nova to insert the
         # duplicate security group entry
@@ -3541,8 +3541,8 @@ class FixedIPTestCase(BaseInstanceTypeTestCase):
                                       updated_at=new))
 
     def mock_db_query_first_to_raise_data_error_exception(self):
-        self.mox.StubOutWithMock(query.Query, 'first')
-        query.Query.first().AndRaise(db_exc.DBError())
+        self.mox.StubOutWithMock(Query, 'first')
+        Query.first().AndRaise(db_exc.DBError())
         self.mox.ReplayAll()
 
     def test_fixed_ip_disassociate_all_by_timeout_single_host(self):
