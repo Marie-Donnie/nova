@@ -69,6 +69,7 @@ from nova.objects import fields
 from nova import quota
 from nova import safe_utils
 
+
 from nova.db.discovery.context import RomeContextManager
 from nova.db.discovery.context import RomeRequestContext
 
