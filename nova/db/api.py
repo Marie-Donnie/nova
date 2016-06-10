@@ -35,8 +35,6 @@ from oslo_log import log as logging
 from nova.cells import rpcapi as cells_rpcapi
 from nova.i18n import _LE
 
-#from nova.db.sqlalchemy import api as mysql_api
-#from nova.db.discovery import api as discovery_api
 
 db_opts = [
     cfg.BoolOpt('enable_new_services',
@@ -106,19 +104,10 @@ class ApiProxy:
            return result_callable
 
 
-
-
-# _BACKEND_MAPPING = {'sqlalchemy': 'nova.db.sqlalchemy.api'}
 _BACKEND_MAPPING = {'sqlalchemy': 'nova.db.discovery.api', 'discovery': 'nova.db.discovery.api'}
-# _BACKEND_MAPPING = {'sqlalchemy': 'nova.db.sqlalchemy.api', 'discovery': 'nova.db.sqlalchemy.api'}
 
-#def select_implementation(use_mysql=True):
-#    return ApiProxy(use_mysql)
-
-IMPL = ApiProxy(True) #select_implementation(False)
-
-#IMPL = ApiProxy(mysql_api, discovery_api, "[ MySQL_impl    ]", "[ Discovery_impl]", False)
-
+# True to test with sqlalchemy, False for discovery
+IMPL = ApiProxy(False)
 
 
 CONF = cfg.CONF
