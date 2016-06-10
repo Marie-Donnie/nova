@@ -27,6 +27,7 @@ these objects be simple dictionaries.
 
 """
 
+
 from oslo_config import cfg
 from oslo_db import concurrency
 from oslo_log import log as logging
@@ -34,6 +35,8 @@ from oslo_log import log as logging
 from nova.cells import rpcapi as cells_rpcapi
 from nova.i18n import _LE
 
+#from nova.db.sqlalchemy import api as mysql_api
+#from nova.db.discovery import api as discovery_api
 
 db_opts = [
     cfg.BoolOpt('enable_new_services',
@@ -47,14 +50,80 @@ db_opts = [
                help='Template string to be used to generate snapshot names'),
 ]
 
+class ApiProxy:
+    """Class that enables a "visual" comparison between two objects (<a> and <b>):
+    when a developer wants to test if some
+   methods of <a> differs from some methods of <b>, this class can be used. """
+    def __init__(self, use_mysql=True):
+       self.backend = None
+       self.use_mysql = use_mysql
+
+    def _init_backend(self):
+       if self.use_mysql:
+           from nova.db.sqlalchemy import api as mysql_api
+           self.backend = mysql_api
+           self.label = "[ MySQL_impl    ]"
+       else:
+           from nova.db.discovery import api as discovery_api
+           self.backend = discovery_api
+           self.label = "[ Discovery_impl]"
+
+    def __getattr__(self, attr):
+        if attr in ["use_mysql", "backend", "label"]:
+           return self.__dict__[attr]
+        self._init_backend()
+        ret = object.__getattribute__(self.backend, attr)
+        if hasattr(ret, "__call__"):
+            callable_object = self.FunctionWrapper(ret, attr, self.label)
+            return callable_object
+        return ret
+
+    class FunctionWrapper:
+        """Class that is used to "simulate" the call to a functions on two objects:
+        it enables to measure the difference
+       between the two implementations. This class will target the creation of runnable objects."""
+        def __init__(self, callable, call_name, label):
+           self.callable = callable
+           self.call_name = call_name
+           self.label = label
+
+        def __call__(self, *args, **kwargs):
+           # result_callable_a = self.callable_a(*args, **kwargs)
+           # try:
+           result_callable = self.callable(*args, **kwargs)
+           # except:
+           #     result_callable_b = "ERROR"
+           #     pass
+           #  pretty_print_callable_a = "%s.%s => [%s]" % (self.label_a, self.call_name, str(result_callable_a))
+           pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
+           # print(pretty_print_callable_a)
+           print(pretty_print_callable)
+           fo = open("/opt/logs/db_api.log", "a")
+           # fo.write(pretty_print_callable_a+"\n")
+           fo.write(pretty_print_callable+"\n")
+           fo.write("\n")
+           fo.close()
+           return result_callable
+
+
+
+
+# _BACKEND_MAPPING = {'sqlalchemy': 'nova.db.sqlalchemy.api'}
+_BACKEND_MAPPING = {'sqlalchemy': 'nova.db.discovery.api', 'discovery': 'nova.db.discovery.api'}
+# _BACKEND_MAPPING = {'sqlalchemy': 'nova.db.sqlalchemy.api', 'discovery': 'nova.db.sqlalchemy.api'}
+
+#def select_implementation(use_mysql=True):
+#    return ApiProxy(use_mysql)
+
+IMPL = ApiProxy(True) #select_implementation(False)
+
+#IMPL = ApiProxy(mysql_api, discovery_api, "[ MySQL_impl    ]", "[ Discovery_impl]", False)
+
+
+
 CONF = cfg.CONF
 CONF.register_opts(db_opts)
 
-_BACKEND_MAPPING = {'sqlalchemy': 'nova.db.discovery.api'}
-#_BACKEND_MAPPING = {'sqlalchemy': 'nova.db.sqlalchemy.api'}
-
-
-IMPL = concurrency.TpoolDbapiWrapper(CONF, backend_mapping=_BACKEND_MAPPING)
 
 LOG = logging.getLogger(__name__)
 
