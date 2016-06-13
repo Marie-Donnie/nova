@@ -34,7 +34,7 @@ from oslo_log import log as logging
 
 from nova.cells import rpcapi as cells_rpcapi
 from nova.i18n import _LE
-
+import time
 
 db_opts = [
     cfg.BoolOpt('enable_new_services',
@@ -60,11 +60,11 @@ class ApiProxy:
        if self.use_mysql:
            from nova.db.sqlalchemy import api as mysql_api
            self.backend = mysql_api
-           self.label = "[ MySQL_impl]"
+           self.label = "[MySQL_impl]"
        else:
            from nova.db.discovery import api as discovery_api
            self.backend = discovery_api
-           self.label = "[ Discovery_impl]"
+           self.label = "[Discovery_impl]"
 
     def __getattr__(self, attr):
         if attr in ["use_mysql", "backend", "label"]:
@@ -93,7 +93,16 @@ class ApiProxy:
            #     result_callable_b = "ERROR"
            #     pass
            #  pretty_print_callable_a = "%s.%s => [%s]" % (self.label_a, self.call_name, str(result_callable_a))
-           pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
+           #pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
+           pretty_print_callable = """{"implementation": %s "class": %s, "method": %s, "args": %s, "kwargs": %s, "result": %s, "timestamp": %i}""" % (
+               self.label,
+               self.__class__.__name__,
+               self.call_name,
+               str(args),
+               str(kwargs),
+               str(result_callable),
+               int(round(time.time() * 1000))
+            )
            # print(pretty_print_callable_a)
            print(pretty_print_callable)
            fo = open("/opt/logs/db_api.log", "a")
