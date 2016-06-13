@@ -60,7 +60,7 @@ class ApiProxy:
        if self.use_mysql:
            from nova.db.sqlalchemy import api as mysql_api
            self.backend = mysql_api
-           self.label = "[ MySQL_impl    ]"
+           self.label = "[ MySQL_impl]"
        else:
            from nova.db.discovery import api as discovery_api
            self.backend = discovery_api
