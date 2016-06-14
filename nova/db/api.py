@@ -105,12 +105,21 @@ class ApiProxy:
                 get_time_ms(),
                 duration
             )
+            dct = {
+                'backend': self.label,
+                'class': mod.__name__,
+                'method': self.call_name,
+                'args': str(args),
+                'kwargs': str(kwargs),
+                'result': str(result_callable),
+                'timestamp': get_time_ms(),
+                'duration': duration
+            }
+            ppjson = json.dumps(dct)
 
-
-            print(pretty_print_callable)
+            print(ppjson)
             fo = open("/opt/logs/db_api.log", "a")
-            fo.write(pretty_print_callable+"\n")
-            fo.write("\n")
+            fo.write(ppjson+"\n")
             fo.close()
             return result_callable
 
