@@ -33,8 +33,11 @@ from oslo_log import log as logging
 
 from nova.cells import rpcapi as cells_rpcapi
 from nova.i18n import _LE
+import json
 import time
 import inspect
+
+get_time_ms = lambda: int(round(time.time() * 1000))
 
 db_opts = [
     cfg.BoolOpt('enable_new_services',
@@ -86,18 +89,24 @@ class ApiProxy:
            self.label = label
 
         def __call__(self, *args, **kwargs):
+            time_before = get_time_ms()
             result_callable = self.callable(*args, **kwargs)
+            time_after = get_time_ms()
+            duration = time_after - time_before
             frm = inspect.stack()[1]
             mod = inspect.getmodule(frm[0])
-            pretty_print_callable = """{"backend": "%s", "class": "%s", "method": "%s", "args": "%s", "kwargs": "%s", "result": "%s", "timestamp": %i},""" % (
-               self.label,
-               mod.__name__,
-               self.call_name,
-               str(args),
-               str(kwargs),
-               str(result_callable),
-               int(round(time.time() * 1000))
+            pretty_print_callable = """{"backend": "%s", "class": "%s", "method": "%s", "args": "%s", "kwargs": "%s", "result": "%s", "timestamp": %i, "duration": %i},""" % (
+                self.label,
+                mod.__name__,
+                self.call_name,
+                str(args),
+                str(kwargs),
+                str(result_callable),
+                get_time_ms(),
+                duration
             )
+
+
             print(pretty_print_callable)
             fo = open("/opt/logs/db_api.log", "a")
             fo.write(pretty_print_callable+"\n")
