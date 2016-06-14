@@ -35,6 +35,7 @@ from oslo_log import log as logging
 from nova.cells import rpcapi as cells_rpcapi
 from nova.i18n import _LE
 import time
+import inspect
 
 db_opts = [
     cfg.BoolOpt('enable_new_services',
@@ -51,7 +52,7 @@ db_opts = [
 class ApiProxy:
     """Class that enables a "visual" comparison between two objects (<a> and <b>):
     when a developer wants to test if some
-   methods of <a> differs from some methods of <b>, this class can be used. """
+   methods of <a> differ from some methods of <b>, this class can be used. """
     def __init__(self, use_mysql=True):
        self.backend = None
        self.use_mysql = use_mysql
@@ -77,8 +78,8 @@ class ApiProxy:
         return ret
 
     class FunctionWrapper:
-        """Class that is used to "simulate" the call to a functions on two objects:
-        it enables to measure the difference
+        """Class that is used to "simulate" the call to a function on two objects:
+        it enables the measure of the differences
        between the two implementations. This class will target the creation of runnable objects."""
         def __init__(self, callable, call_name, label):
            self.callable = callable
@@ -86,31 +87,27 @@ class ApiProxy:
            self.label = label
 
         def __call__(self, *args, **kwargs):
-           # result_callable_a = self.callable_a(*args, **kwargs)
-           # try:
-           result_callable = self.callable(*args, **kwargs)
-           # except:
-           #     result_callable_b = "ERROR"
-           #     pass
-           #  pretty_print_callable_a = "%s.%s => [%s]" % (self.label_a, self.call_name, str(result_callable_a))
-           #pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
-           pretty_print_callable = """{"implementation": %s "class": %s, "method": %s, "args": %s, "kwargs": %s, "result": %s, "timestamp": %i}""" % (
+            result_callable = self.callable(*args, **kwargs)
+            #pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
+            frm = inspect.stack()[1]
+            mod = inspect.getmodule(frm[0])
+            pretty_print_callable = """{"backend": "%s" "class": "%s", "method": "%s", "args": "%s", "kwargs": "%s", "result": "%s", "timestamp": %i}""" % (
                self.label,
-               self.__class__.__name__,
+               mod.__name__,
                self.call_name,
                str(args),
                str(kwargs),
                str(result_callable),
                int(round(time.time() * 1000))
             )
-           # print(pretty_print_callable_a)
-           print(pretty_print_callable)
-           fo = open("/opt/logs/db_api.log", "a")
-           # fo.write(pretty_print_callable_a+"\n")
-           fo.write(pretty_print_callable+"\n")
-           fo.write("\n")
-           fo.close()
-           return result_callable
+            # print(pretty_print_callable_a)
+            print(pretty_print_callable)
+            fo = open("/opt/logs/db_api.log", "a")
+            # fo.write(pretty_print_callable_a+"\n")
+            fo.write(pretty_print_callable+"\n")
+            fo.write("\n")
+            fo.close()
+            return result_callable
 
 
 _BACKEND_MAPPING = {'sqlalchemy': 'nova.db.discovery.api', 'discovery': 'nova.db.discovery.api'}
