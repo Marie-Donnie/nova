@@ -29,7 +29,6 @@ these objects be simple dictionaries.
 
 
 from oslo_config import cfg
-from oslo_db import concurrency
 from oslo_log import log as logging
 
 from nova.cells import rpcapi as cells_rpcapi
@@ -88,10 +87,9 @@ class ApiProxy:
 
         def __call__(self, *args, **kwargs):
             result_callable = self.callable(*args, **kwargs)
-            #pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
             frm = inspect.stack()[1]
             mod = inspect.getmodule(frm[0])
-            pretty_print_callable = """{"backend": "%s" "class": "%s", "method": "%s", "args": "%s", "kwargs": "%s", "result": "%s", "timestamp": %i}""" % (
+            pretty_print_callable = """{"backend": "%s", "class": "%s", "method": "%s", "args": "%s", "kwargs": "%s", "result": "%s", "timestamp": %i},""" % (
                self.label,
                mod.__name__,
                self.call_name,
@@ -100,10 +98,8 @@ class ApiProxy:
                str(result_callable),
                int(round(time.time() * 1000))
             )
-            # print(pretty_print_callable_a)
             print(pretty_print_callable)
             fo = open("/opt/logs/db_api.log", "a")
-            # fo.write(pretty_print_callable_a+"\n")
             fo.write(pretty_print_callable+"\n")
             fo.write("\n")
             fo.close()
