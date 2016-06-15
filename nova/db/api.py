@@ -107,15 +107,18 @@ class ApiProxy:
                 'duration': duration
             }
             ppjson = json.dumps(dct)
-
             print(ppjson)
-            fo = open("/opt/logs/db_api.log", "a")
-            fo.write(ppjson+"\n")
-            fo.close()
+            if self.label == "[MySQL_impl]":
+                fo = open("/opt/logs/db_api_mysql.log", "a")
+                fo.write(ppjson+"\n")
+                fo.close()
+            else:
+                fo = open("/opt/logs/db_api_disco.log", "a")
+                fo.write(ppjson+"\n")
+                fo.close()
             return result_callable
 
 
-_BACKEND_MAPPING = {'sqlalchemy': 'nova.db.discovery.api', 'discovery': 'nova.db.discovery.api'}
 
 # True to test with sqlalchemy, False for discovery
 IMPL = ApiProxy(False)
