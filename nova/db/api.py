@@ -95,16 +95,7 @@ class ApiProxy:
             duration = time_after - time_before
             frm = inspect.stack()[1]
             mod = inspect.getmodule(frm[0])
-            pretty_print_callable = """{"backend": "%s", "class": "%s", "method": "%s", "args": "%s", "kwargs": "%s", "result": "%s", "timestamp": %i, "duration": %i},""" % (
-                self.label,
-                mod.__name__,
-                self.call_name,
-                str(args),
-                str(kwargs),
-                str(result_callable),
-                get_time_ms(),
-                duration
-            )
+
             dct = {
                 'backend': self.label,
                 'class': mod.__name__,
