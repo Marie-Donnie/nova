@@ -5171,6 +5171,7 @@ def _flavor_get_query(context, read_deleted=None):
         instance_types_associated_to_this_project = model_query(context, models.InstanceTypeProjects.instance_type_id).filter(models.InstanceTypeProjects.project_id==context.project_id).all()
         instance_types_ids_associated_to_this_project = map(lambda x: x.id, instance_types_associated_to_this_project)
         query = query.filter(and_(models.InstanceTypes.is_public==true(), models.InstanceTypes.id.in_(instance_types_ids_associated_to_this_project)))
+
     return query
 
 
@@ -5213,7 +5214,8 @@ def flavor_get_all(context, inactive=False, filters=None,
             # ])
             instance_types_associated_to_this_project = model_query(context, models.InstanceTypeProjects.instance_type_id).filter(models.InstanceTypeProjects.project_id==context.project_id).all()
             instance_types_ids_associated_to_this_project = map(lambda x: x.id, instance_types_associated_to_this_project)
-            query = query.filter(models.InstanceTypes.id.in_(instance_types_ids_associated_to_this_project))
+            if len(instance_types_ids_associated_to_this_project) > 0:
+                query = query.filter(models.InstanceTypes.id.in_(instance_types_ids_associated_to_this_project))
 
         if len(the_filter) > 1:
             query = query.filter(or_(*the_filter))
