@@ -119,7 +119,6 @@ class ApiProxy:
             return result_callable
 
 
-_BACKEND_MAPPING = {'sqlalchemy': 'nova.db.discovery.api', 'discovery': 'nova.db.discovery.api'}
 
 # True to test with sqlalchemy, False for discovery
 IMPL = ApiProxy(True)
