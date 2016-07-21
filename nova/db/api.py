@@ -17,16 +17,30 @@
 
 """Defines interface for DB access.
 
-Functions in this module are imported into the nova.db namespace. Call these
-functions from nova.db namespace, not the nova.db.api namespace.
+Discovery modifies the original `nova.db.api.py' in order to choose
+between MySQL backend and REDIS backend. The operator should specify
+the backend in the `nova.conf' file.
 
-All functions in this module return objects that implement a dictionary-like
-interface. Currently, many of these objects are sqlalchemy objects that
-implement a dictionary interface. However, a future goal is to have all of
-these objects be simple dictionaries.
+```
+[discovery]
+db_backend = (redis | mysql)
+gen_logs = (True | False)
+```
+
+- `db_backend' targets the database backend. 
+- `gen_logs' records the execution time of db methods.
+
+-----
+
+Functions in this module are imported into the nova.db namespace. Call
+these functions from nova.db namespace, not the nova.db.api namespace.
+
+All functions in this module return objects that implement a
+dictionary-like interface. Currently, many of these objects are
+sqlalchemy objects that implement a dictionary interface. However, a
+future goal is to have all of these objects be simple dictionaries.
 
 """
-
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -48,41 +62,57 @@ db_opts = [
                help='Template string to be used to generate instance names'),
     cfg.StrOpt('snapshot_name_template',
                default='snapshot-%s',
-               help='Template string to be used to generate snapshot names'),
+               help='Template string to be used to generate snapshot names')]
+
+# Discovery parameters in the nova.conf file
+discovery_opts = [
+    cfg.StrOpt('db_backend',
+               default='redis',
+               help='Database backend'),
+    cfg.BoolOpt('gen_logs',
+               default=False,
+               help='Generates logs')
 ]
 
-class ApiProxy:
-    """Class that enables a "visual" comparison between two objects (<a> and <b>):
-    when a developer wants to test if some
-   methods of <a> differ from some methods of <b>, this class can be used. """
-    def __init__(self, use_mysql=True):
-       self.backend = None
-       self.use_mysql = use_mysql
+CONF = cfg.CONF
+CONF.register_opts(db_opts)
+CONF.register_opts(discovery_opts, group='discovery')
 
+class ApiProxy:
+    """Class that enables the comparison between MySQL and Discovery
+    implementations. It logs the execution time of db methods.
+
+    """
+    def __init__(self):
+       self.backend = None
+       self.label = ''
+       
     def _init_backend(self):
-       if self.use_mysql:
-           from nova.db.sqlalchemy import api as mysql_api
-           self.backend = mysql_api
-           self.label = "[MySQL_impl]"
-       else:
-           from nova.db.discovery import api as discovery_api
-           self.backend = discovery_api
-           self.label = "[Discovery_impl]"
+        # Proxy that targets the correct backend
+        if CONF.discovery.db_backend.upper() == 'REDIS':
+            from nova.db.discovery import api as discovery_api
+            self.backend = discovery_api
+            self.label = "[Discovery_impl]"
+        else:
+            from nova.db.sqlalchemy import api as mysql_api
+            self.backend = mysql_api
+            self.label = "[MySQL_impl]"
+
 
     def __getattr__(self, attr):
-        if attr in ["use_mysql", "backend", "label"]:
+        if attr in ["backend", "label"]:
            return self.__dict__[attr]
         self._init_backend()
         ret = object.__getattribute__(self.backend, attr)
-        if hasattr(ret, "__call__"):
-            callable_object = self.FunctionWrapper(ret, attr, self.label)
-            return callable_object
+        if hasattr(ret, "__call__") and CONF.discovery.gen_logs:
+            return self.FunctionWrapper(ret, attr, self.label)
         return ret
 
     class FunctionWrapper:
-        """Class that is used to "simulate" the call to a function on two objects:
-        it enables the measure of the differences
-       between the two implementations. This class will target the creation of runnable objects."""
+        """Class used to measure the execution time of a method and log it
+        inside `opt.logs.db_api_<backend>.log'.
+
+        """
         def __init__(self, callable, call_name, label):
            self.callable = callable
            self.call_name = call_name
@@ -109,24 +139,14 @@ class ApiProxy:
             ppjson = json.dumps(dct)
             print(ppjson)
             if self.label == "[MySQL_impl]":
-                fo = open("/opt/logs/db_api_mysql.log", "a")
-                fo.write(ppjson+"\n")
-                fo.close()
+                with open("/opt/logs/db_api_mysql.log", "a") as f:
+                    f.write(ppjson+"\n")
             else:
-                fo = open("/opt/logs/db_api_disco.log", "a")
-                fo.write(ppjson+"\n")
-                fo.close()
+                with open("/opt/logs/db_api_disco.log", "a") as f:
+                    f.write(ppjson+"\n")
             return result_callable
 
-
-
-# True to test with sqlalchemy, False for discovery
-IMPL = ApiProxy(False)
-
-
-CONF = cfg.CONF
-CONF.register_opts(db_opts)
-
+IMPL = ApiProxy()
 
 LOG = logging.getLogger(__name__)
 
